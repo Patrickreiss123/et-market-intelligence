@@ -1,0 +1,52 @@
+name: ET Market Intelligence
+
+on:
+  schedule:
+    - cron: "4-59/15 * * * *"
+  workflow_dispatch:
+  push:
+    paths:
+      - "*.zip"
+      - ".github/workflows/bot.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bot
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Instalar codigo enviado em zip
+        run: |
+          if ls *.zip >/dev/null 2>&1; then
+            unzip -o -q *.zip -x 'et-market-intelligence/.github/*'
+            cp -r et-market-intelligence/. .
+            rm -rf et-market-intelligence *.zip
+          fi
+      - name: Analisar e enviar alertas
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          if [ -z "$TELEGRAM_BOT_TOKEN" ]; then
+            echo "Sem token do Telegram: rodando em modo de teste."
+            python -m live.run --teste
+          else
+            python -m live.run
+          fi
+      - name: Salvar alteracoes
+        run: |
+          git config user.name "et-bot"
+          git config user.email "et-bot@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "Atualizacao automatica do bot"
+          git push
