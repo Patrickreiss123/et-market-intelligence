@@ -1,0 +1,23 @@
+name: Teste do Telegram
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/teste.yml"
+
+jobs:
+  teste:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Enviar mensagem de teste
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python -c "from live.telegram import send_message; send_message('ET Market Intelligence: teste de conexao. O bot esta ligado e vai avisar aqui quando houver novidade no grafico.')"
